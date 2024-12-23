@@ -54,7 +54,6 @@ function RootLayoutNav() {
       <Stack 
       screenOptions={{
             headerShown: false,
-        animation: 'fade',
         
       }}
       >
@@ -66,8 +65,9 @@ function RootLayoutNav() {
       
       />
 
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal',headerShown: false }} />
+<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+<Stack.Screen name="(departure)" options={{ headerShown: false }} />
+<Stack.Screen name="modal" options={{ presentation: 'modal',headerShown: false }} />
       </Stack>
     </ThemeProvider>
   );
