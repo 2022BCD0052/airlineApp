@@ -1,12 +1,13 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
-import React, { useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { StatusBar } from 'expo-status-bar'
 import Header from '@/components/Header'
 import { ArrowPathRoundedSquareIcon, ChevronDoubleRightIcon } from 'react-native-heroicons/outline'
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5'
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useSafeAreaFrame } from 'react-native-safe-area-context'
-import { router } from 'expo-router'
+import { router, useFocusEffect } from 'expo-router'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 interface TripOptionProps {
   pageNavigation: string
@@ -130,6 +131,8 @@ export interface FlightOfferData {
 
 export default function HomeScreen() {
   const [isPending, setIsPending] = useState(false)
+  const [refressData, setRefressData] = useState(false)
+  const [session, setSession] = useState<any>(null)
   const [pageNavigation, setPageNavigation] = useState('OneWay')
   const [searchFlightData, setsearchFlightData] = useState<SearchFlightData>({
     originCity: '',
@@ -137,6 +140,8 @@ export default function HomeScreen() {
     DepartureDate: '',
     seat: 0,
   })
+
+
   const [selectedDate, setSelectedDate] = useState<any>(new Date())
   const [flightOfferData, setFlightOfferDate] = useState<FlightOfferData>({
     originLocationCode: '',
@@ -146,10 +151,79 @@ export default function HomeScreen() {
     adults: 0,
     maxResults: 10,
   })
+// fixed departure date 
+useEffect(() => {
+  const loadSelectedDestination = async () => {
+    try {
+      const departureCities = await AsyncStorage.getItem("departureCities");
+
+      if (departureCities) {
+        const departureCityArray = JSON.parse(departureCities);
+        const lastAddedItem = departureCityArray[departureCityArray.length - 1];
+        setsearchFlightData((prev) => ({
+          ...prev,
+          originCity: lastAddedItem.city,
+        }));
+        setFlightOfferDate((prev) => ({
+          ...prev,
+          originLocationCode: lastAddedItem.iataCode,
+        }));
+      }
+    } catch (error) {
+      console.error("Error loading data from AsyncStorage", error);
+    }
+  };
+
+  if (refressData) {
+    loadSelectedDestination();
+    setRefressData(false);
+  }
+}, [refressData]);
+// fixed destination date 
+useEffect(() => {
+  const loadSelectedDestination = async () => {
+    try {
+      const departureCities = await AsyncStorage.getItem("destinationCities")
+
+      if (departureCities) {
+        const departureCityArray = JSON.parse(departureCities);
+        const lastAddedItem = departureCityArray[departureCityArray.length - 1];
+        setsearchFlightData((prev) => ({
+          ...prev,
+          destinationCity: lastAddedItem.city,
+        }));
+        setFlightOfferDate((prev) => ({
+          ...prev,
+          destinationLocationCode: lastAddedItem.iataCode,
+        }));
+      }
+    } catch (error) {
+      console.error("Error loading data from AsyncStorage", error);
+    }
+  };
+
+  if (refressData) {
+    loadSelectedDestination();
+    setRefressData(false);
+  }
+}, [refressData]);
+
+  const hnadleBackFromPreviousScreen = ()=>{
+    setRefressData(true);
+  }
+  useFocusEffect(
+useCallback(()=>{
+  hnadleBackFromPreviousScreen();
+
+},[session])
+  )
+
+
 
   const handleNavigationChange = (type: string) => {
     setPageNavigation(type) // Update the navigation state to reflect the chosen option
   }
+
 
   return (
     <View style={styles.container}>
@@ -182,18 +256,18 @@ export default function HomeScreen() {
               searchFlightData.originCity ? searchFlightData.originCity : 'Departure City'
             }
             icon={<FontAwesome5 size={20} color='gray' name='plane-departure' />}
-            value={searchFlightData.destinationCity}
+            value={searchFlightData. originCity}
             onPress={() => router.push("/departure")}
           />
           {/*Destination location */}
 
           <LocationInput
             placeholder={
-              searchFlightData.originCity ? searchFlightData.originCity : 'Departure City'
+              searchFlightData.destinationCity ? searchFlightData.destinationCity : 'Departure City'
             }
             icon={<FontAwesome5 size={20} color='gray' name='plane-departure' />}
             value={searchFlightData.destinationCity}
-            onPress={() => {}}
+            onPress={() => router.push("/destination")}
           />
           {/*Departure date */}
           <DepartureDate
@@ -282,4 +356,4 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
   },
-})
+}) 

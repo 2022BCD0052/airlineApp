@@ -14,14 +14,15 @@ import { apiToken } from "./utils/api";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export default function DepartureScreen() {
+export default function DestinationScreen() {
   const [searchInput, setSearchInput] = React.useState("");
   const [autocomplete, setAutocomplete] = React.useState([]);
   const [flightOfferData, setFlightOfferData] = React.useState<any>({
-    originLocationCode: "",
+    destinationLocationCode: "",
   });
-  const [previousSelectedDeparture, setPreviousSelectedDeparture] = React.useState([]);
+  const [previousSelectedDestination, setPreviousSelectedDestination] = React.useState([]);
 
+  // Fetch autocomplete suggestions
   const autoCompleteSearch = async (searchInput: string) => {
     try {
       if (!searchInput.trim()) {
@@ -38,20 +39,20 @@ export default function DepartureScreen() {
 
       setAutocomplete(response.data.data || []);
     } catch (error) {
-      console.error(error);
+      console.error("Autocomplete error:", error);
     }
   };
 
+  // Load previously selected cities
   const loadPreviousSelectedCities = async () => {
     try {
-      const storedCities = await AsyncStorage.getItem("departureCities");
-      if (storedCities) {
-        const parsedCities = JSON.parse(storedCities);
-        console.log("Loaded cities:", parsedCities); // Debugging log
-        setPreviousSelectedDeparture(parsedCities);
-      }
+      const storedCities = await AsyncStorage.getItem("destinationCities");
+      const parsedCities = storedCities ? JSON.parse(storedCities) : [];
+      console.log("Loaded cities:", parsedCities); // Debugging log
+      setPreviousSelectedDestination(parsedCities);
     } catch (error) {
       console.error("Error loading cities:", error);
+      setPreviousSelectedDestination([]);
     }
   };
 
@@ -59,6 +60,7 @@ export default function DepartureScreen() {
     loadPreviousSelectedCities();
   }, []);
 
+  // Debounce helper function
   const debounce = (func: any, delay: number) => {
     let timeoutId: NodeJS.Timeout;
     return function (...args: any) {
@@ -69,18 +71,17 @@ export default function DepartureScreen() {
 
   const debounceSearch = debounce(autoCompleteSearch, 800);
 
+  // Handle input changes with debounce
   const handleInputChange = (value: string) => {
     setSearchInput(value);
     debounceSearch(value);
   };
 
+  // Handle selecting an autocomplete item
   const handleAutocompleteSelect = async (item: any) => {
     try {
-      const updatedCities = [...previousSelectedDeparture];
-      const newCity = {
-        city: item.name,
-        iataCode: item.iataCode,
-      };
+      const updatedCities = [...previousSelectedDestination];
+      const newCity = { city: item.name, iataCode: item.iataCode };
 
       // Prevent duplicates
       const isDuplicate = updatedCities.some(
@@ -90,15 +91,16 @@ export default function DepartureScreen() {
       if (!isDuplicate) {
         updatedCities.push(newCity);
         await AsyncStorage.setItem(
-          "departureCities",
+          "destinationCities",
           JSON.stringify(updatedCities)
         );
-        setPreviousSelectedDeparture(updatedCities);
+        console.log("Saved cities:", updatedCities); // Debugging log
+        setPreviousSelectedDestination(updatedCities);
       }
 
       setFlightOfferData({
         ...flightOfferData,
-        originLocationCode: item.iataCode,
+        destinationLocationCode: item.iataCode,
       });
       setSearchInput(`${item.name} (${item.iataCode})`);
       setAutocomplete([]);
@@ -114,7 +116,7 @@ export default function DepartureScreen() {
         <Pressable onPress={() => router.back()} style={styles.backButton}>
           <MaterialIcons name="arrow-back" size={24} color="white" />
         </Pressable>
-        <Text style={styles.headerTitle}>Departure</Text>
+        <Text style={styles.headerTitle}>Destination</Text>
         <MaterialCommunityIcons name="dots-horizontal" size={24} color="white" />
       </View>
 
@@ -128,7 +130,7 @@ export default function DepartureScreen() {
         />
       </View>
 
-      {/* Autocomplete */}
+      {/* Autocomplete Suggestions */}
       {autocomplete.length > 0 && (
         <View style={styles.autocompleteContainer}>
           <FlatList
@@ -148,26 +150,30 @@ export default function DepartureScreen() {
         </View>
       )}
 
-      {/* Previous Selected Cities */}
+      {/* Previously Selected Cities */}
       <View style={styles.previousContainer}>
-        <Text style={styles.previousTitle} className="color-gray-800">Previous Selected Cities</Text>
-        {previousSelectedDeparture.map((city, index) => (
-          <Pressable
-            key={index}
-            onPress={() => {
-              setFlightOfferData({
-                ...flightOfferData,
-                originLocationCode: city.iataCode,
-              });
-              setSearchInput(`${city.city} (${city.iataCode})`);
-            }}
-            style={styles.previousItem}
-          >
-            <Text style={styles.previousText} className="color-gray-500">
-              {city.city} ({city.iataCode})
-            </Text>
-          </Pressable>
-        ))}
+        <Text style={styles.previousTitle}>Previous Selected Cities</Text>
+        {previousSelectedDestination.length === 0 ? (
+          <Text>No previously selected destinations.</Text>
+        ) : (
+          previousSelectedDestination.map((city, index) => (
+            <Pressable
+              key={index}
+              onPress={() => {
+                setFlightOfferData({
+                  ...flightOfferData,
+                  destinationLocationCode: city.iataCode,
+                });
+                setSearchInput(`${city.city} (${city.iataCode})`);
+              }}
+              style={styles.previousItem}
+            >
+              <Text style={styles.previousText}>
+                {city.city} ({city.iataCode})
+              </Text>
+            </Pressable>
+          ))
+        )}
       </View>
     </View>
   );
