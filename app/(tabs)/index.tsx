@@ -179,6 +179,37 @@ useEffect(() => {
     setRefressData(false);
   }
 }, [refressData]);
+
+// fixed destination date 
+useEffect(() => {
+  const loadSelectedDestination = async () => {
+    try {
+      const destinationCities = await AsyncStorage.getItem("destinationCities");
+
+      if (destinationCities) {
+        const destinationCityArray = JSON.parse(destinationCities);
+        const lastAddedItem = destinationCityArray[destinationCityArray.length - 1];
+        setsearchFlightData((prev) => ({
+          ...prev,
+          destinationCity: lastAddedItem.city,
+        }));
+        setFlightOfferDate((prev) => ({
+          ...prev,
+          destinationLocationCode: lastAddedItem.iataCode,
+        }));
+      }
+    } catch (error) {
+      console.error("Error loading data from AsyncStorage", error);
+    }
+  };
+
+  if (refressData) {
+    loadSelectedDestination();
+    setRefressData(false);
+  }
+}, [refressData]);
+
+  // handle back from previous screen
 // fixed destination date 
 useEffect(() => {
   const loadSelectedDestination = async () => {
