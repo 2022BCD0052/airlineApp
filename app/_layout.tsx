@@ -6,6 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 import "../global.css"
+import { SafeAreaView, StatusBar } from 'react-native'; // Import SafeAreaView and StatusBar
 
 import { useColorScheme } from '@/components/useColorScheme';
 
@@ -50,25 +51,23 @@ function RootLayoutNav() {
   const colorScheme = useColorScheme();
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack 
-      screenOptions={{
-            headerShown: false,
-        
-      }}
-      >
-      <Stack.Screen name="index" options={{ presentation: 'modal',
-   
-        
-       }}
-
+    <SafeAreaView style={{ flex: 1 }}>
+      {/* Hide the status bar */}
+      <StatusBar hidden={true} />
       
-      />
-
-<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-<Stack.Screen name="(departure)" options={{ headerShown: false }} />
-<Stack.Screen name="modal" options={{ presentation: 'modal',headerShown: false }} />
-      </Stack>
-    </ThemeProvider>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+          }}
+        >
+          <Stack.Screen name="index" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="(departure)" options={{ headerShown: false }} />
+          <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: false }} />
+        </Stack>
+      </ThemeProvider>
+    </SafeAreaView>
   );
 }
+ 
