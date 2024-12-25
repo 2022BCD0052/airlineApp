@@ -243,7 +243,21 @@ useCallback(()=>{
   const handleNavigationChange = (type: string) => {
     setPageNavigation(type) // Update the navigation state to reflect the chosen option
   }
-
+  const validateDepartureDate = (date) => {
+    const today = new Date();
+    const departureDate = new Date(date);
+    
+    // Check if departureDate is in the past
+    if (departureDate < today) {
+      Alert.alert(
+        "Invalid Date",
+        "The selected departure date is in the past. Please choose a future date."
+      );
+      return false;
+    }
+    return true;
+  };
+  
 // ++++++++++++++++++++++++++++++++++++++++++?//
 // construct search url from session data and session
 const constructSearchUrl = () => {
@@ -262,41 +276,41 @@ const constructSearchUrl = () => {
 
   // Ensure `DepartureDate` is properly formatted as `YYYY-MM-DD`
   const formattedDepartureDate = 
-    DepartureDate instanceof Date
-      ? DepartureDate.toISOString().split('T')[0]
-      : DepartureDate;
+  DepartureDate instanceof Date
+    ? DepartureDate.toISOString().split('T')[0]
+    : DepartureDate;
+
 
       return `${apiBaseUrl}?originLocationCode=${originLocationCode}&destinationLocationCode=${destinationLocationCode}&departureDate=${formattedDepartureDate}&adults=${adults}&max=${maxResults}`;
     };
-const handleParentSearch = async () => {
-  const searchUrl = constructSearchUrl();
-  if (!searchUrl) return; // Exit if URL is invalid
-
-  setIsPending(true);
-
-  try {
-    const response = await axios.get(searchUrl, {
-      headers: { Authorization: `Bearer ${apiToken}` },
-    });
-
-    if (response.data) {
-      await AsyncStorage.setItem("searchFlightData", JSON.stringify(searchFlightData));
-      router.push({
-        pathname: "/searchResult",
-        params: { flightOfferData: JSON.stringify(flightOfferData) },
-      });
-    }
-  } catch (error) {
-    console.error("Error fetching flight data", error);
-    const errorMessage =
-      error.response && error.response.status === 401
-        ? "Session expired, please try again."
-        : "Error fetching flight data, please try again.";
-    Alert.alert("Error", errorMessage);
-  } finally {
-    setIsPending(false);
-  }
-};
+    const handleParentSearch = async () => {
+      if (!validateDepartureDate(flightOfferData.DepartureDate)) return;
+    
+      const searchUrl = constructSearchUrl();
+      if (!searchUrl) return;
+    
+      setIsPending(true);
+    
+      try {
+        const response = await axios.get(searchUrl, {
+          headers: { Authorization: `Bearer ${apiToken}` },
+        });
+    
+        if (response.data) {
+          await AsyncStorage.setItem("searchFlightData", JSON.stringify(searchFlightData));
+          router.push({
+            pathname: "/searchResult",
+            params: { flightOfferData: JSON.stringify(flightOfferData) },
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching flight data", error);
+        Alert.alert("Error", error.response?.data?.errors[0]?.detail || "Error fetching flight data.");
+      } finally {
+        setIsPending(false);
+      }
+    };
+    
 
 // fetch flight data
 
@@ -346,15 +360,21 @@ const handleParentSearch = async () => {
           />
           {/*Departure date */}
           <DepartureDate
-            placeholder={
-              selectedDate && selectedDate.length > 0
-                ? selectedDate.replace(/^"|"$/g, '')
-                : 'Departure Date'
-            }
-            icon={<FontAwesome5 size={20} color='gray' name='calendar-alt' />}
-            value={searchFlightData.DepartureDate}
-            onPress={() => router.push('/departureDate')}
-          />
+  placeholder={
+    selectedDate && selectedDate.length > 0
+      ? selectedDate.replace(/^"|"$/g, '')
+      : 'Select Departure Date'
+  }
+  icon={<FontAwesome5 size={20} color='gray' name='calendar-alt' />}
+  value={searchFlightData.DepartureDate}
+  onPress={() => {
+    if (!selectedDate || new Date(selectedDate) < new Date()) {
+      setSelectedDate(new Date().toISOString().split('T')[0]); // Default to today's date
+    }
+    router.push('/departureDate');
+  }}
+/>
+
           {/* seats */}
           <View className='border-gray-300 border-2 mx-4 flex-row rounded-2xl py-1 items-center justify-center pl-4'>
             <View className=''>
