@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import React, { useCallback, useEffect, useState } from 'react'
 import { StatusBar } from 'expo-status-bar'
 import Header from '@/components/Header'
@@ -8,6 +8,8 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useSafeAreaFrame } from 'react-native-safe-area-context'
 import { router, useFocusEffect } from 'expo-router'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { apiBaseUrl, apiToken } from '../utils/api'
+import axios from 'axios'
 
 interface TripOptionProps {
   pageNavigation: string
@@ -138,7 +140,7 @@ export default function HomeScreen() {
     originCity: '',
     destinationCity: '',
     DepartureDate: '',
-    seat: 0,
+    seat: 1,
   })
 
 
@@ -228,7 +230,6 @@ useEffect(() => {
   loadDepartureDate();
 }, [refressData]);
 
-
   const hnadleBackFromPreviousScreen = ()=>{
     setRefressData(true);
   }
@@ -239,12 +240,65 @@ useCallback(()=>{
 },[session])
   )
 
-
-
   const handleNavigationChange = (type: string) => {
     setPageNavigation(type) // Update the navigation state to reflect the chosen option
   }
 
+// ++++++++++++++++++++++++++++++++++++++++++?//
+// construct search url from session data and session
+const constructSearchUrl = () => {
+  const {
+    originLocationCode,
+    destinationLocationCode,
+    DepartureDate,
+    adults,
+    maxResults,
+  } = flightOfferData;
+
+  if (!originLocationCode || !destinationLocationCode || !DepartureDate || !adults) {
+    Alert.alert("Missing Data", "Please fill in all required fields.");
+    return null;
+  }
+
+  // Ensure `DepartureDate` is properly formatted as `YYYY-MM-DD`
+  const formattedDepartureDate = 
+    DepartureDate instanceof Date
+      ? DepartureDate.toISOString().split('T')[0]
+      : DepartureDate;
+
+      return `${apiBaseUrl}?originLocationCode=${originLocationCode}&destinationLocationCode=${destinationLocationCode}&departureDate=${formattedDepartureDate}&adults=${adults}&max=${maxResults}`;
+    };
+const handleParentSearch = async () => {
+  const searchUrl = constructSearchUrl();
+  if (!searchUrl) return; // Exit if URL is invalid
+
+  setIsPending(true);
+
+  try {
+    const response = await axios.get(searchUrl, {
+      headers: { Authorization: `Bearer ${apiToken}` },
+    });
+
+    if (response.data) {
+      await AsyncStorage.setItem("searchFlightData", JSON.stringify(searchFlightData));
+      router.push({
+        pathname: "/searchResult",
+        params: { flightOfferData: JSON.stringify(flightOfferData) },
+      });
+    }
+  } catch (error) {
+    console.error("Error fetching flight data", error);
+    const errorMessage =
+      error.response && error.response.status === 401
+        ? "Session expired, please try again."
+        : "Error fetching flight data, please try again.";
+    Alert.alert("Error", errorMessage);
+  } finally {
+    setIsPending(false);
+  }
+};
+
+// fetch flight data
 
   return (
     <View style={styles.container}>
@@ -330,7 +384,7 @@ useCallback(()=>{
           <View className='w-full justify-start pt-2 px-4 mt-2'>
             <Pressable
               className='bg-[#12B3A8] rounded-lg justify-center items-center py-3'
-              onPress={() => {}}
+              onPress={handleParentSearch}
             >
               <Text className='text-white font-bold text-lg'>Search</Text>
             </Pressable>
