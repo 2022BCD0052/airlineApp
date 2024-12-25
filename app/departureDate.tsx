@@ -13,6 +13,10 @@ export default function DepartureDate() {
 
   const saveDepartureDate = async () => {
     try {
+      if (!flightOfferData.departureDate) {
+        Alert.alert("Error", "Please select a departure date before saving.");
+        return;
+      }
       const departureDate = flightOfferData.departureDate.toISOString().split("T")[0];
       await AsyncStorage.setItem("departureDate", departureDate);
       Alert.alert("Success", `Departure date saved: ${departureDate}`);
@@ -21,6 +25,7 @@ export default function DepartureDate() {
       Alert.alert("Error", "Failed to save the departure date.");
     }
   };
+  
 
   return (
     <View style={styles.container}>
@@ -30,7 +35,7 @@ export default function DepartureDate() {
           <MaterialIcons name="arrow-back" size={24} color="white" />
         </Pressable>
         <Text style={styles.headerTitle}>Departure</Text>
-        <Pressable onPress={saveDepartureDate} style={styles.saveButton}>
+        <Pressable onPress={()=>saveDepartureDate()} style={styles.saveButton}>
           <Text style={styles.saveButtonText}>Save</Text>
         </Pressable>
       </View>
@@ -88,7 +93,7 @@ const styles = StyleSheet.create({
   saveButton: {
     paddingVertical: 10,
     paddingHorizontal: 20,
-    backgroundColor: "#12B3A8",
+    // backgroundColor: "#12B3A8",
     borderRadius: 10,
   },
   saveButtonText: {
@@ -97,7 +102,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   calendarContainer: {
-    flex: 1,
     margin: 16,
     backgroundColor: "white",
     borderRadius: 10,
