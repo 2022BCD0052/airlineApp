@@ -309,7 +309,7 @@ useCallback(()=>{
             }
             icon={<FontAwesome5 size={20} color='gray' name='calendar-alt' />}
             value={searchFlightData.DepartureDate}
-            onPress={() => {}}
+            onPress={() => router.push('/departureDate')}
           />
           {/* seats */}
           <View className='border-gray-300 border-2 mx-4 flex-row rounded-2xl py-1 items-center justify-center pl-4'>
