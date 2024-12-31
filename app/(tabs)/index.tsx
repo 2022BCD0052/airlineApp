@@ -121,6 +121,7 @@ const DepartureDate: React.FC<DepartureDateProps> = ({ placeholder, value, icon,
   </Pressable>
 )
 
+// flight offer data form
 export interface FlightOfferData {
   originLocationCode: string
   destinationLocationCode: string
