@@ -121,7 +121,7 @@ const DepartureDate: React.FC<DepartureDateProps> = ({ placeholder, value, icon,
   </Pressable>
 )
 
-// flight offer data
+// flight offer data form
 export interface FlightOfferData {
   originLocationCode: string
   destinationLocationCode: string
@@ -221,6 +221,13 @@ useEffect(() => {
           ...prev,
           DepartureDate: savedDate,
         }));
+      } else {
+        // If no saved date, set the default future date
+        const defaultDate = getDefaultFutureDate();
+        setsearchFlightData((prev) => ({
+          ...prev,
+          DepartureDate: defaultDate,
+        }));
       }
     } catch (error) {
       console.error("Error loading departure date from AsyncStorage", error);
@@ -229,6 +236,7 @@ useEffect(() => {
 
   loadDepartureDate();
 }, [refressData]);
+
 
   const hnadleBackFromPreviousScreen = ()=>{
     setRefressData(true);
@@ -243,19 +251,25 @@ useCallback(()=>{
   const handleNavigationChange = (type: string) => {
     setPageNavigation(type) // Update the navigation state to reflect the chosen option
   }
+
+  const getDefaultFutureDate = () => {
+    const today = new Date();
+    today.setDate(today.getDate() + 1); // Add 1 day to ensure it's in the future
+    return today.toISOString().split('T')[0];
+  };
+  
   const validateDepartureDate = (date) => {
     const today = new Date();
     const departureDate = new Date(date);
-    
-    // Check if departureDate is in the past
+  
+    // If DepartureDate is in the past, replace it with the default future date
     if (departureDate < today) {
-      Alert.alert(
-        "Invalid Date",
-        "The selected departure date is in the past. Please choose a future date."
+      console.warn(
+        `DepartureDate (${date}) is in the past. Using default future date.`
       );
-      return false;
+      return getDefaultFutureDate();
     }
-    return true;
+    return date;
   };
   
 // ++++++++++++++++++++++++++++++++++++++++++?//
@@ -274,43 +288,51 @@ const constructSearchUrl = () => {
     return null;
   }
 
-  // Ensure `DepartureDate` is properly formatted as `YYYY-MM-DD`
-  const formattedDepartureDate = 
-  DepartureDate instanceof Date
-    ? DepartureDate.toISOString().split('T')[0]
-    : DepartureDate;
+  // Validate DepartureDate
+  const FormateddateDepartureDate(DepartureDate);
+
+  console.log("Validated DepartureDate:", validatedDepartureDate);
+  console.log("Original DepartureDate:", DepartureDate);
+console.log("Validated DepartureDate:", validatedDepartureDate);
 
 
-      return `${apiBaseUrl}?originLocationCode=${originLocationCode}&destinationLocationCode=${destinationLocationCode}&departureDate=${formattedDepartureDate}&adults=${adults}&max=${maxResults}`;
-    };
-    const handleParentSearch = async () => {
-      if (!validateDepartureDate(flightOfferData.DepartureDate)) return;
-    
-      const searchUrl = constructSearchUrl();
-      if (!searchUrl) return;
-    
-      setIsPending(true);
-    
-      try {
-        const response = await axios.get(searchUrl, {
-          headers: { Authorization: `Bearer ${apiToken}` },
-        });
-    
-        if (response.data) {
-          await AsyncStorage.setItem("searchFlightData", JSON.stringify(searchFlightData));
-          router.push({
-            pathname: "/searchResult",
-            params: { flightOfferData: JSON.stringify(flightOfferData) },
-          });
-        }
-      } catch (error) {
-        console.error("Error fetching flight data", error);
-        Alert.alert("Error", error.response?.data?.errors[0]?.detail || "Error fetching flight data.");
-      } finally {
-        setIsPending(false);
-      }
-    };
-    
+  // Construct the search URL with the validated date
+  const searchUrl = `${apiBaseUrl}?originLocationCode=${originLocationCode}&destinationLocationCode=${destinationLocationCode}&departureDate=${formattedDepartureDate}&adults=${adults}&max=${maxResults};
+  return searchUrl;
+};
+
+
+const handleParentSearch = async () => {
+  // Validate the date first
+
+  const searchUrl = constructSearchUrl();
+  if (!searchUrl) return; // Exit if URL is invalid
+
+  setIsPending(true);
+  try {
+    const response = await axios.get(searchUrl, {
+      headers: { Authorization: `Bearer ${apiToken}` },
+    });
+    console.log("API Response:", response.data);
+  } catch (error) {
+    console.error("Error Response Data:", error.response?.data);
+    console.error("Error Status:", error.response?.status);
+    console.error("Error Message:", error.message);
+
+    let errorMessage = "Error fetching flight data, please try again.";
+    if (error.response?.status === 401) {
+      errorMessage = "Session expired, please try again.";
+    } 
+     else if (error.response?.status === 500) {
+      errorMessage = "Server error, please try later.";
+    }
+
+    Alert.alert("Error", errorMessage);
+  } finally {
+    setIsPending(false);
+  }
+};
+
 
 // fetch flight data
 
@@ -360,21 +382,15 @@ const constructSearchUrl = () => {
           />
           {/*Departure date */}
           <DepartureDate
-  placeholder={
-    selectedDate && selectedDate.length > 0
-      ? selectedDate.replace(/^"|"$/g, '')
-      : 'Select Departure Date'
-  }
-  icon={<FontAwesome5 size={20} color='gray' name='calendar-alt' />}
-  value={searchFlightData.DepartureDate}
-  onPress={() => {
-    if (!selectedDate || new Date(selectedDate) < new Date()) {
-      setSelectedDate(new Date().toISOString().split('T')[0]); // Default to today's date
-    }
-    router.push('/departureDate');
-  }}
-/>
-
+            placeholder={
+              selectedDate && selectedDate.length > 0
+                ? selectedDate.replace(/^"|"$/g, '')
+                : 'Departure Date'
+            }
+            icon={<FontAwesome5 size={20} color='gray' name='calendar-alt' />}
+            value={searchFlightData.DepartureDate}
+            onPress={() => router.push('/departureDate')}
+          />
           {/* seats */}
           <View className='border-gray-300 border-2 mx-4 flex-row rounded-2xl py-1 items-center justify-center pl-4'>
             <View className=''>

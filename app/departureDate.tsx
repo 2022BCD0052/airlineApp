@@ -2,22 +2,33 @@ import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import React, { useState } from "react";
 import { router } from "expo-router";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
-import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { Calendar } from "react-native-calendars";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function DepartureDate() {
   const [flightOfferData, setFlightOfferData] = useState<any>({
-    departureDate: new Date(),
+    departureDate: new Date(1-1-2025),
   });
 
   const saveDepartureDate = async () => {
     try {
-      if (!flightOfferData.departureDate) {
-        Alert.alert("Error", "Please select a departure date before saving.");
+      const selectedDate = flightOfferData.departureDate;
+      const today = new Date();
+
+      // Clear time from today's date for accurate comparison
+      today.setHours(0, 0, 0, 0);
+      
+      // Log today's and selected dates for debugging
+      console.log("Today (without time): ", today);
+      console.log("Selected Date (without time): ", selectedDate);
+
+      // Ensure the selected date is in the future
+      if (!selectedDate || selectedDate < today) {
+        Alert.alert("Error", "Please select a valid future departure date.");
         return;
       }
-      const departureDate = flightOfferData.departureDate.toISOString().split("T")[0];
+
+      const departureDate = selectedDate.toISOString().split("T")[0]; // Format as YYYY-MM-DD
       await AsyncStorage.setItem("departureDate", departureDate);
       Alert.alert("Success", `Departure date saved: ${departureDate}`);
     } catch (error) {
@@ -25,7 +36,6 @@ export default function DepartureDate() {
       Alert.alert("Error", "Failed to save the departure date.");
     }
   };
-  
 
   return (
     <View style={styles.container}>
@@ -35,7 +45,7 @@ export default function DepartureDate() {
           <MaterialIcons name="arrow-back" size={24} color="white" />
         </Pressable>
         <Text style={styles.headerTitle}>Departure</Text>
-        <Pressable onPress={()=>saveDepartureDate()} style={styles.saveButton}>
+        <Pressable onPress={saveDepartureDate} style={styles.saveButton}>
           <Text style={styles.saveButtonText}>Save</Text>
         </Pressable>
       </View>
@@ -44,10 +54,25 @@ export default function DepartureDate() {
       <View style={styles.calendarContainer}>
         <Calendar
           onDayPress={(day: any) => {
-            setFlightOfferData({
-              ...flightOfferData,
-              departureDate: new Date(day.dateString),
-            });
+            const selectedDate = new Date(day.dateString)
+            const today = new Date();
+            
+            // Clear time from today's date for accurate comparison
+            today.setHours(0, 0, 0, 0);
+
+            // Log today's and selected dates for debugging
+            console.log("Today (without time): ", today);
+            console.log("Selected Date (without time): ", selectedDate);
+
+            // Ensure the selected date is in the future
+            if (selectedDate < today) {
+              Alert.alert("Invalid Date", "Please select a future date.");
+            } else {
+              setFlightOfferData({
+                ...flightOfferData,
+                departureDate: selectedDate,
+              });
+            }
           }}
           markedDates={{
             [flightOfferData.departureDate.toISOString().split("T")[0]]: {
@@ -93,7 +118,6 @@ const styles = StyleSheet.create({
   saveButton: {
     paddingVertical: 10,
     paddingHorizontal: 20,
-    // backgroundColor: "#12B3A8",
     borderRadius: 10,
   },
   saveButtonText: {
@@ -105,7 +129,7 @@ const styles = StyleSheet.create({
     margin: 16,
     backgroundColor: "white",
     borderRadius: 10,
-    elevation: 4, // For shadow on Android
+    elevation: 4,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
